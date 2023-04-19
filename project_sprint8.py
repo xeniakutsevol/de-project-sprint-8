@@ -1,53 +1,51 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from datetime import datetime
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import (
-    StructType,
-    StructField,
-    StringType,
-    LongType,
-)
+from pyspark.sql.types import LongType, StringType, StructField, StructType
 
-TOPIC_IN = "student.topic.cohort8.xeniakutsevol"
-TOPIC_OUT = "student.topic.cohort8.xeniakutsevol.out"
+TOPIC_IN = os.getenv("TOPIC_IN")
+TOPIC_OUT = os.getenv("TOPIC_OUT")
 
 
 spark_jars_packages = ",".join(
     [
-        "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0",
-        "org.postgresql:postgresql:42.4.0",
+        os.getenv("SPARK_SQL_KAFKA_JAR"),
+        os.getenv("POSTRESQL_JAR"),
     ]
 )
 
 kafka_security_options = {
-    "kafka.bootstrap.servers": "rc1b-2erh7b35n4j4v869.mdb.yandexcloud.net:9091",
-    "kafka.security.protocol": "SASL_SSL",
-    "kafka.sasl.mechanism": "SCRAM-SHA-512",
-    "kafka.sasl.jaas.config": 'org.apache.kafka.common.security.scram.ScramLoginModule required username="de-student" password="ltcneltyn";',
+    "kafka.bootstrap.servers": os.getenv("KAFKA_BOOTSTRAP_SERVERS"),
+    "kafka.security.protocol": os.getenv("KAFKA_SECURITY_PROTOCOL"),
+    "kafka.sasl.mechanism": os.getenv("KAFKA_SASL_MECHANISM"),
+    "kafka.sasl.jaas.config": os.getenv("KAFKA_SASL_JAAS_CONFIG"),
 }
 
 postgres_read_options = {
-    "url": "jdbc:postgresql://rc1a-fswjkpli01zafgjm.mdb.yandexcloud.net:6432/de",
-    "driver": "org.postgresql.Driver",
-    "user": "student",
-    "password": "de-student",
+    "url": os.getenv("POSTGRES_READ_URL"),
+    "driver": os.getenv("POSTGRES_DRIVER"),
+    "user": os.getenv("POSTGRES_READ_USER"),
+    "password": os.getenv("POSTGRES_READ_PASSWORD"),
     "dbtable": "subscribers_restaurants",
 }
 
 postgres_write_options = {
-    "url": "jdbc:postgresql://localhost:5432/de",
-    "driver": "org.postgresql.Driver",
-    "user": "jovyan",
-    "password": "jovyan",
+    "url": os.getenv("POSTGRES_WRITE_URL"),
+    "driver": os.getenv("POSTGRES_DRIVER"),
+    "user": os.getenv("POSTGRES_WRITE_USER"),
+    "password": os.getenv("POSTGRES_WRITE_PASSWORD"),
     "dbtable": "subscribers_feedback",
 }
 
 
 def foreach_batch_function(df, epoch_id):
-
-    df.persist()
 
     df.withColumn("feedback", F.lit(None).cast(StringType())).write.mode(
         "append"
@@ -74,11 +72,10 @@ def foreach_batch_function(df, epoch_id):
         "truncate", False
     )
 
-    df.unpersist()
-
 
 spark = (
-    SparkSession.builder.appName("RestaurantSubscribeStreamingService")
+    SparkSession.builder.master("local[*]")
+    .appName("RestaurantSubscribeStreamingService")
     .config("spark.sql.session.timeZone", "UTC")
     .config("spark.jars.packages", spark_jars_packages)
     .getOrCreate()
