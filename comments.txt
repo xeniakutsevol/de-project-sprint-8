@@ -1,1 +1,0 @@
-Кирилл, привет! Спасибо за комментарии. Я не очень поняла, как можно применить watermark к условию f"adv_campaign_datetime_start >= {current_timestamp_utc} and adv_campaign_datetime_end <= {current_timestamp_utc}". Можешь подсказать? Остальное поправила.

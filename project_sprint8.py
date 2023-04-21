@@ -111,6 +111,8 @@ filtered_read_stream_df = (
     restaurant_read_stream_df.withColumn("value", F.col("value").cast(StringType()))
     .withColumn("event", F.from_json(F.col("value"), incomming_message_schema))
     .selectExpr("event.*")
+    .withWatermark("adv_campaign_datetime_end", "10 minutes")
+    .groupBy(F.window("adv_campaign_datetime_end", "10 minutes"), "restaurant_id")
     .where(
         f"adv_campaign_datetime_start >= {current_timestamp_utc} and adv_campaign_datetime_end <= {current_timestamp_utc}"
     )
